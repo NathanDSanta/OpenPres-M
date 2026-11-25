@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Channel, invoke } from "@tauri-apps/api/core";
-import { ArrowRight, CircleAlert, Laptop, Loader2, MonitorUp, Moon, Network, Play, Plug, Power, Server } from "lucide-react";
+import { ArrowRight, CircleAlert, Download, Laptop, Loader2, MonitorUp, Moon, Network, Play, Plug, Power, Server } from "lucide-react";
 import type { FoundServer, LocalServerStatus } from "@/types";
 import UpdateDialog, { type UpdatePhase } from "@/components/UpdateDialog";
 import { compatibilityProblem, OLDEST_SERVER, THIS_VERSION, type CompatibilityProblem } from "@/lib/compatibility";
@@ -12,6 +12,8 @@ const LAST_KEY = "openpres.lastServer";
 const LATER_KEY = "openpres.updateLater";
 /** This computer's manager installs new versions by itself when it opens. */
 const AUTO_KEY = "openpres.autoUpdate";
+/** Where the server is downloaded when it isn't installed on this computer. */
+const SERVER_DOWNLOAD = "https://github.com/NathanDSanta/OpenPres/releases/latest";
 
 function autoUpdates() {
   try {
@@ -32,7 +34,12 @@ function setAutoUpdates(on: boolean) {
 
 interface FoundUpdate {
   version: string;
+  /** As people see it: "0.7.0.3 beta". */
+  name: string;
   current: string;
+  current_name: string;
+  /** A beta (the server managed last follows the beta program). */
+  beta: boolean;
   notes: string;
   date: string | null;
 }
@@ -119,7 +126,8 @@ export default function Launcher() {
     };
     // Offline or slow: the server list doesn't wait long for it.
     const timer = setTimeout(done, 4000);
-    invoke<FoundUpdate | null>("check_update")
+    // Betas too when the server managed last follows the beta program.
+    invoke<FoundUpdate | null>("check_update", { server: lastServer()?.url || null })
       .then((u) => {
         if (u && !remindedLater(u.version)) setUpdate(u);
       })
@@ -159,11 +167,10 @@ export default function Launcher() {
     setAutomatic(on);
   };
 
-  // Automatic: a new version installs as OpenPres opens. Not when this computer's server
-  // runs: it has its own setting and picks a moment when nothing is live (installing here
-  // would restart it).
+  // Automatic: a new version installs as the Manager opens (the server is a program of its
+  // own, with its own setting).
   useEffect(() => {
-    if (!update || !automatic || !local || local.running || autoInstalled.current) return;
+    if (!update || !automatic || autoInstalled.current) return;
     autoInstalled.current = true;
     void installUpdate();
   });
@@ -305,6 +312,7 @@ export default function Launcher() {
               <small>
                 It shows the screens, runs the stream and keeps the songs and media. It runs in the background, and this and other computers and tablets
                 manage it. You'll set its name and passwords next.
+                {!local.installed && " It needs the OpenPres server installed on this computer first."}
               </small>
             </span>
             {starting ? <Loader2 size={16} className="spin" /> : <ArrowRight size={16} />}
@@ -321,6 +329,7 @@ export default function Launcher() {
           </button>
           <p className="launcher-first-note">You can change this later at the bottom of the server list.</p>
           {error && <div className="alert alert-error">{error}</div>}
+          {!local.installed && <DownloadServer />}
         </div>
       </div>
     );
@@ -374,7 +383,16 @@ export default function Launcher() {
           )}
         </div>
 
-        {local && !local.running && isServer(local) && (
+        {local && !local.running && isServer(local) && !local.installed && (
+          <div className="launcher-local">
+            <span>
+              The OpenPres server isn't installed on this computer ({local.host}).
+              <small>Install it, then start it here. Or manage a server on another computer.</small>
+            </span>
+            <DownloadServer />
+          </div>
+        )}
+        {local && !local.running && isServer(local) && local.installed && (
           <div className="launcher-local">
             <span>
               No server runs on this computer ({local.host}).
@@ -423,15 +441,16 @@ export default function Launcher() {
       </div>
       {update && (
         <UpdateDialog
-          title={`OpenPres ${update.version} is available`}
-          current={update.current}
+          title={`OpenPres Manager ${update.name} is available`}
+          current={update.current_name}
           date={update.date}
           notes={update.notes}
           note={
-            local?.running && navigator.userAgent.includes("Windows")
-              ? "OpenPres closes and opens again. The server on this computer restarts too, so its screens go dark for a moment."
-              : "OpenPres closes and opens again by itself."
+            update.beta
+              ? "A beta: the server you manage follows the beta program. The Manager closes and opens again by itself."
+              : "The Manager closes and opens again by itself. Servers keep running."
           }
+          installing="Installing… the Manager opens again by itself."
           phase={phase}
           error={updateError}
           onUpdate={() => void installUpdate()}
@@ -440,6 +459,15 @@ export default function Launcher() {
         />
       )}
     </div>
+  );
+}
+
+/** Opens the server's download page in the computer's browser. */
+function DownloadServer() {
+  return (
+    <button className="btn btn-primary" onClick={() => window.open(SERVER_DOWNLOAD, "_blank")}>
+      <Download size={14} /> Download the server
+    </button>
   );
 }
 

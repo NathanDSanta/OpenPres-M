@@ -23,6 +23,7 @@ import Reflow from "./pages/Reflow";
 import Media from "./pages/Media";
 import Screens from "./pages/Screens";
 import Audio from "./pages/Audio";
+import Translation from "./pages/Translation";
 import Themes from "./pages/Themes";
 import Live from "./pages/Live";
 import Bible from "./pages/Bible";
@@ -66,6 +67,7 @@ function AppShell() {
             {page("/media", <Media />)}
             {page("/screens", <Screens />)}
             {page("/audio", <Audio />)}
+            {page("/translation", <Translation />)}
             <Route path="/inputs" element={<Navigate to="/audio" replace />} />
             <Route path="/outputs" element={<Navigate to="/audio" replace />} />
             {page("/themes", <Themes />)}

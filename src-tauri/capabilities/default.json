@@ -1,0 +1,21 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "The Manager's own pages (the server list). The title bar (titlebar.js) moves, minimizes, maximizes and closes the window.",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "allow-discovered-servers",
+    "allow-local-server-status",
+    "allow-start-local-server",
+    "allow-set-this-computer",
+    "allow-page-log",
+    "allow-check-update",
+    "allow-install-update",
+    "core:window:allow-minimize",
+    "core:window:allow-toggle-maximize",
+    "core:window:allow-close",
+    "core:window:allow-start-dragging",
+    "core:window:allow-internal-toggle-maximize"
+  ]
+}

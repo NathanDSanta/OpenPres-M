@@ -13,3 +13,4 @@ export * from "./stream";
 export * from "./system";
 export * from "./themes";
 export * from "./timers";
+export * from "./translation";

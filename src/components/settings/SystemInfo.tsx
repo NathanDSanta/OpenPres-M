@@ -25,8 +25,8 @@ function Updates({ status }: { status: UpdateStatus | null }) {
   else if (status.state === "downloading")
     text = `Downloading the update…${status.total ? ` ${Math.round((100 * status.done) / status.total)}%` : ""}`;
   else if (status.state === "installing") text = "Installing the update: the server restarts…";
-  else if (status.available && status.waiting) text = `OpenPres ${status.available.version} ${status.waiting}`;
-  else if (status.available) text = `OpenPres ${status.available.version} is available`;
+  else if (status.available && status.waiting) text = `OpenPres ${status.available.name ?? status.available.version} ${status.waiting}`;
+  else if (status.available) text = `OpenPres ${status.available.name ?? status.available.version} is available`;
   else if (status.checked_at_ms) text = `Up to date (checked ${new Date(status.checked_at_ms).toLocaleString()})`;
   else text = "Not checked yet";
   return (
@@ -64,6 +64,33 @@ function AutomaticUpdates({ status }: { status: UpdateStatus | null }) {
           {status.automatic
             ? "New versions install by themselves once nothing has been live for 5 minutes (no stream, recording, slides, Bible or media). The server restarts; managers reconnect."
             : "New versions are offered to the admin, who chooses when to update."}
+        </span>
+      </dd>
+    </>
+  );
+}
+
+/**
+ * The admin's switch: betas for this server and everything that manages or listens to it (the
+ * Manager, the Stream Deck plugin, the viewer and Translation apps). Servers before 0.7 don't
+ * have it.
+ */
+function BetaProgram({ status }: { status: UpdateStatus | null }) {
+  const { admin } = useManager();
+  if (status?.beta === undefined) return null;
+  const set = (on: boolean) => void serverApi.update({ beta_program: on }).then(markChanged).catch(notifyError);
+  return (
+    <>
+      <dt>Beta program</dt>
+      <dd className="settings-toggle-fact">
+        <label className="toggle-inline">
+          <Toggle checked={status.beta} onChange={set} disabled={!admin} title={admin ? undefined : "Only the admin changes this"} />
+          <span>{status.beta ? "On" : "Off"}</span>
+        </label>
+        <span className="muted small">
+          {status.beta
+            ? "This server gets betas (“0.7.0.3 beta”): new features before the stable release, maybe with rough edges. The Manager, the Stream Deck plugin and the apps that use this server get them too."
+            : "Only stable releases. Turn it on to try new features before they're released, here and in the Manager, the Stream Deck plugin and the apps."}
         </span>
       </dd>
     </>
@@ -140,6 +167,7 @@ export default function SystemInfo() {
             <Updates status={updates} />
           </dd>
           <AutomaticUpdates status={updates} />
+          <BetaProgram status={updates} />
           <dt>Running for</dt>
           <dd>{uptime(info.uptime_s)}</dd>
           <dt>Data folder</dt>

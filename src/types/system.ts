@@ -99,11 +99,15 @@ export interface ServerInfo {
   starts_with_computer: boolean;
   /** New versions install by themselves when nothing is live. */
   auto_update: boolean;
+  /** The admin chose betas for this server, the Manager and the apps (servers from 0.7 on). */
+  beta_program?: boolean;
 }
 
 /** A newer version of OpenPres (GitHub Releases). */
 export interface AvailableUpdate {
   version: string;
+  /** As people see it: "0.7.0.3 beta" (servers from 0.7 on). */
+  name?: string;
   /** Release notes (Markdown). */
   notes: string;
   date: string | null;
@@ -112,6 +116,10 @@ export interface AvailableUpdate {
 /** The server's own updates (`/server/update`). */
 export type UpdateStatus = {
   current: string;
+  /** As people see it: "0.7.0", "0.7.0.3 beta" (servers from 0.7 on). */
+  current_name?: string;
+  /** Betas are offered too: the beta program (servers from 0.7 on). */
+  beta?: boolean;
   /** An installed release (test builds don't update themselves). */
   supported: boolean;
   available: AvailableUpdate | null;
@@ -156,6 +164,8 @@ export interface LocalServerStatus {
   choice: boolean | null;
   /** Its server is set up (has passwords). */
   set_up: boolean;
+  /** The server's program is installed on this computer (it's a program of its own). */
+  installed: boolean;
 }
 
 export interface SystemInfo {

@@ -1,0 +1,138 @@
+.translation-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 820px;
+}
+
+.translation-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.translation-alert svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.translation-track {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.translation-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.translation-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.translation-title h2 {
+  margin: 0 0 2px;
+  font-size: 16px;
+}
+
+.translation-icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: 10px;
+}
+
+.translation-state {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.translation-state.live {
+  color: #6fd394;
+}
+
+.translation-state.problem {
+  color: #ffc56b;
+}
+
+.translation-modes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.translation-mode {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  color: var(--text-primary);
+  text-align: left;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.translation-mode svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: var(--text-muted);
+}
+
+.translation-mode span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.translation-mode small {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.translation-mode.chosen {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent) inset;
+}
+
+.translation-mode.chosen svg {
+  color: var(--accent);
+}
+
+.translation-mode:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.translation-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.translation-bus-select {
+  flex: 0 1 320px;
+  width: 320px;
+}
+
+.translation-phones .card-title span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.translation-phones p {
+  margin: 0 0 10px;
+}
