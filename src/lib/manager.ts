@@ -45,6 +45,7 @@ const PAGE_AREAS: Record<string, Area[]> = {
   "/media": ["stage"],
   "/screens": ["stage"],
   "/audio": ["stage", "stream"],
+  "/translation": ["stage", "stream"],
   "/themes": ["stage"],
   "/services": ["stage"],
   "/live": ["stream"],
