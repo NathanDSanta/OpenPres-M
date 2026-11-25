@@ -45,6 +45,9 @@ function Notes({ text }: { text: string }) {
 
 const mb = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 
+/** "2026-11-25" is that day here (new Date() would read it as midnight UTC: the 24th in America). */
+const day = (date: string) => new Date(/^\d{4}-\d{2}-\d{2}$/.test(date) ? `${date}T00:00` : date);
+
 /** "A new version is available": Update, or Remind me later. */
 export default function UpdateDialog({
   title,
@@ -72,7 +75,7 @@ export default function UpdateDialog({
             <h2 id="update-title">{title}</h2>
             <p>
               You have {current}
-              {date ? ` · released ${new Date(date).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" })}` : ""}
+              {date ? ` · released ${day(date).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" })}` : ""}
             </p>
           </div>
         </header>

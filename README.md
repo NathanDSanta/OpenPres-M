@@ -13,12 +13,22 @@ app [OpenPres-V](https://github.com/NathanDSanta/OpenPres-V) and the Translation
 ## Development
 
 React and TypeScript, built with Vite: `npm ci`, then `npm run dev` (with a server running on
-this computer) or `npm run build`. Work on a branch named `feature/…`, `fix/…`, `docs/…`,
-`chore/…` or `ci/…`, and open the pull request into `develop` with a title like `feat: …` or
-`fix: …`. The checks (types and build) run on every pull request. Betas and stable releases:
+this computer) or `npm run build`. The desktop program is a small Tauri 2 shell in
+`src-tauri/` (Rust): `npm run tauri dev` opens it. It finds servers (mDNS), starts the one on
+this computer (the server's own program, with `--server`), keeps its logs in
+`OpenPres/Manager/logs` and updates itself from this repository's releases; the beta program
+is the choice of the server it managed last.
+
+Work on a branch named `feature/…`, `fix/…`, `docs/…`, `chore/…` or `ci/…`, and open the pull
+request into `develop` with a title like `feat: …` or `fix: …`. The checks (types and build;
+the desktop program's tests and clippy) run on every pull request. Betas and stable releases:
 [docs/RELEASING.md](docs/RELEASING.md).
 
-Each release publishes the web build (`OpenPres-Manager-web-<version>.zip`), which the server
-bundles. `compatibility.json` says which servers this Manager works with (`oldest_server`).
+Each release publishes the desktop program for Windows, macOS and Linux
+(`OpenPres-Manager-<version>-<computer>…`), its update file (`latest.json`) and the web build
+(`OpenPres-Manager-web-<version>.zip`), which the server bundles. The installed program
+updates itself; it needs the `TAURI_SIGNING_PRIVATE_KEY` secret (the same key as the server's)
+to sign its updates. `compatibility.json` says which servers this Manager works with
+(`oldest_server`).
 
 The code may not be reformatted with Prettier: match the surrounding style by hand.
