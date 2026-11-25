@@ -156,6 +156,8 @@ export interface LocalServerStatus {
   choice: boolean | null;
   /** Its server is set up (has passwords). */
   set_up: boolean;
+  /** The server's program is installed on this computer (it's a program of its own). */
+  installed: boolean;
 }
 
 export interface SystemInfo {
