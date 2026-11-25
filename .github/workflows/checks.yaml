@@ -1,0 +1,38 @@
+# Checks for the Manager, on pull requests and after each merge. A beta needs them green
+# (beta.yaml).
+name: Checks
+
+on:
+  pull_request:
+    branches: [ develop, main ]
+  push:
+    branches: [ develop, main ]
+  workflow_dispatch:
+
+# A new push to the same pull request cancels the checks still running for the old one.
+concurrency:
+  group: checks-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    name: Frontend (types + build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Types and build
+        run: npm run build
+
+      - name: Release scripts
+        run: node --test scripts/release/lib.test.mjs
