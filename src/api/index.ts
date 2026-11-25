@@ -14,6 +14,7 @@ export { mediaApi } from "./media";
 export { timersApi } from "./timers";
 export { streamApi } from "./stream";
 export { bibleApi } from "./bible";
+export { translationApi } from "./translation";
 export { youtubeApi } from "./youtube";
 export { useLive, useRevision, markChanged, markTopicsChanged } from "./events";
 export { apiUrl, mediaUrl, cameraFrameUrl, cameraMjpegUrl, initServer } from "./server";

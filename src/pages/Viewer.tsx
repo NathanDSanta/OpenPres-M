@@ -4,6 +4,7 @@ import { apiGet } from "@/api/client";
 import { useLive } from "@/api/events";
 import { screensApi } from "@/api/screens";
 import { systemApi } from "@/api/system";
+import { translationApi } from "@/api/translation";
 import SceneCanvas from "@/components/canvas/SceneCanvas";
 import Select from "@/components/ui/Select";
 import { useMediaIndex } from "@/hooks/useMediaIndex";
@@ -36,6 +37,11 @@ const remember = (key: string, value: string | null) => {
 interface ViewerInfo {
   buses: { n: number; name: string }[];
 }
+
+/** What a viewer hears: a bus ("3") or a translation track ("t:es"). */
+type Sound = string;
+const trackSound = (language: string): Sound => `t:${language}`;
+const soundLanguage = (sound: Sound | null) => (sound?.startsWith("t:") ? sound.slice(2) : null);
 
 /**
  * For viewers (the OpenPres Android app, or this page in a browser): one screen, as big as it
@@ -122,20 +128,22 @@ function ViewerScreen() {
   useMediaIndex();
   const { data: screens } = useLive(() => screensApi.list(), [], ["screens"]);
   const { data: info } = useLive(() => apiGet<ViewerInfo>("/viewer"), [], ["audio"]);
+  // Translation tracks are open to anyone on the network (older servers have none).
+  const { data: translation } = useLive(() => translationApi.tracks().catch(() => ({ tracks: [] })), [], ["translation"]);
   const shown = (screens ?? []).filter((s) => s.kind !== "monitor");
   const [chosen, setChosen] = useState<string | null>(() => remembered(SCREEN_KEY));
   const screenId = shown.some((s) => s.id === chosen) ? chosen : (shown[0]?.id ?? null);
   const { scene, offset } = useScene(screenId);
 
   const listener = useRef<BusListener | null>(null);
-  const [bus, setBus] = useState<number | null>(null);
+  const [bus, setBus] = useState<Sound | null>(null);
   const [listening, setListening] = useState(false);
   const [soundError, setSoundError] = useState("");
   const [volume, setVolume] = useState(() => Number(remembered(VOLUME_KEY) ?? 1));
   const [controls, setControls] = useState(true);
   const hide = useRef<number | undefined>(undefined);
 
-  const listen = (n: number | null) => {
+  const listen = (sound: Sound | null) => {
     listener.current ??= new BusListener();
     const l = listener.current;
     l.onState = (playing, error) => {
@@ -143,10 +151,12 @@ function ViewerScreen() {
       setSoundError(error);
     };
     l.setVolume(volume);
-    setBus(n);
-    remember(BUS_KEY, n === null ? null : String(n));
-    if (n === null) l.stop();
-    else void l.start(n);
+    setBus(sound);
+    remember(BUS_KEY, sound);
+    const language = soundLanguage(sound);
+    if (sound === null) l.stop();
+    else if (language) void l.startPath(translationApi.listenPath(language));
+    else void l.start(Number(sound));
   };
   useEffect(() => () => listener.current?.stop(), []);
 
@@ -178,8 +188,14 @@ function ViewerScreen() {
 
   const w = scene?.screen.width ?? 16;
   const h = scene?.screen.height ?? 9;
-  const savedBus = Number(remembered(BUS_KEY)) || null;
+  const savedBus = remembered(BUS_KEY) || null;
   const buses = info?.buses ?? [];
+  const tracks = translation?.tracks ?? [];
+  const soundName = (sound: Sound) => {
+    const language = soundLanguage(sound);
+    if (language) return tracks.find((t) => t.language === language)?.name ?? language;
+    return buses.find((b) => String(b.n) === sound)?.name || `bus ${sound}`;
+  };
   return (
     <main className={`presentation-window viewer${controls ? " controls" : ""}`} onPointerDown={poke}>
       {scene && (
@@ -202,9 +218,13 @@ function ViewerScreen() {
         />
         <Headphones size={15} />
         <Select
-          value={bus === null ? "off" : String(bus)}
-          options={[{ value: "off", label: savedBus && bus === null ? `Off (tap to hear ${buses.find((b) => b.n === savedBus)?.name || `bus ${savedBus}`})` : "No sound" }, ...buses.map((b) => ({ value: String(b.n), label: b.name || `Bus ${b.n}`, hint: b.name && b.name !== `Bus ${b.n}` ? `bus ${b.n}` : undefined }))]}
-          onChange={(v) => listen(v === "off" ? null : Number(v))}
+          value={bus === null ? "off" : bus}
+          options={[
+            { value: "off", label: savedBus && bus === null ? `Off (tap to hear ${soundName(savedBus)})` : "No sound" },
+            ...buses.map((b) => ({ value: String(b.n), label: b.name || `Bus ${b.n}`, hint: b.name && b.name !== `Bus ${b.n}` ? `bus ${b.n}` : undefined, group: tracks.length ? "Buses" : undefined })),
+            ...tracks.map((t) => ({ value: trackSound(t.language), label: t.name, hint: t.live ? "translation" : "translation · off", group: "Translation" })),
+          ]}
+          onChange={(v) => listen(v === "off" ? null : v)}
           className="viewer-select"
         />
         {bus !== null && (

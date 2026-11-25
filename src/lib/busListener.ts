@@ -1,8 +1,17 @@
 import { apiUrl } from "@/api/server";
 
+/** "audio/L16; rate=24000; channels=1" -> 24000 Hz, 1 channel (48 kHz stereo when not said). */
+export function pcmFormat(contentType: string | null): { rate: number; channels: 1 | 2 } {
+  const rate = Number(/rate=(\d+)/.exec(contentType ?? "")?.[1]);
+  const channels = /channels=(\d)/.exec(contentType ?? "")?.[1] === "1" ? 1 : 2;
+  return { rate: rate >= 8_000 && rate <= 96_000 ? rate : 48_000, channels };
+}
+
 /**
- * Plays a bus's sound as the server sends it (/audio/buses/:n/listen: raw 16-bit PCM, 48 kHz),
- * a little behind so short network hiccups don't break it up.
+ * Plays sound as the server sends it: a bus (/audio/buses/:n/listen) or a translation track
+ * (/translation/tracks/:language/listen). Raw 16-bit PCM; the rate and channels are in the
+ * answer's Content-Type (48 kHz stereo, or less for speech). It plays a little behind so short
+ * network hiccups don't break it up.
  */
 export class BusListener {
   private ctx: AudioContext | null = null;
@@ -26,7 +35,12 @@ export class BusListener {
   }
 
   /** Starts listening to bus `n` (call from a tap: browsers only start sound after one). */
-  async start(n: number, mono = false) {
+  start(n: number, mono = false) {
+    return this.startPath(`/audio/buses/${n}/listen`, mono ? { mono: "1" } : {});
+  }
+
+  /** Starts listening to any of the server's sound paths (also from a tap). */
+  async startPath(path: string, params: Record<string, string> = {}) {
     this.stop();
     const ctx = (this.ctx ??= new AudioContext({ sampleRate: 48_000 }));
     await ctx.resume().catch(() => undefined);
@@ -40,9 +54,9 @@ export class BusListener {
     this.next = 0;
     this.onState(true, "");
     try {
-      const res = await fetch(apiUrl(`/audio/buses/${n}/listen`, mono ? { mono: "1" } : {}), { credentials: "include", cache: "no-store", signal: abort.signal });
-      if (!res.ok || !res.body) throw new Error(res.status === 401 ? "log in again" : `the server answered ${res.status}`);
-      const channels = /channels=(\d)/.exec(res.headers.get("content-type") ?? "")?.[1] === "1" ? 1 : 2;
+      const res = await fetch(apiUrl(path, params), { credentials: "include", cache: "no-store", signal: abort.signal });
+      if (!res.ok || !res.body) throw new Error(await refusal(res));
+      const { rate, channels } = pcmFormat(res.headers.get("content-type"));
       const reader = res.body.getReader();
       let carry = new Uint8Array(0);
       for (;;) {
@@ -54,7 +68,7 @@ export class BusListener {
         bytes.set(value, carry.length);
         const whole = bytes.length - (bytes.length % (2 * channels));
         carry = bytes.slice(whole);
-        this.play(ctx, new DataView(bytes.buffer, 0, whole), channels);
+        this.play(ctx, new DataView(bytes.buffer, 0, whole), rate, channels);
       }
       if (!abort.signal.aborted) throw new Error("the server stopped sending");
     } catch (e) {
@@ -71,10 +85,11 @@ export class BusListener {
     this.onState(false, "");
   }
 
-  private play(ctx: AudioContext, data: DataView, channels: number) {
+  private play(ctx: AudioContext, data: DataView, rate: number, channels: number) {
     const frames = data.byteLength / (2 * channels);
     if (!frames || !this.gain) return;
-    const buffer = ctx.createBuffer(2, frames, 48_000);
+    // The context resamples buffers at another rate.
+    const buffer = ctx.createBuffer(2, frames, rate);
     const left = buffer.getChannelData(0);
     const right = buffer.getChannelData(1);
     for (let i = 0; i < frames; i++) {
@@ -90,4 +105,14 @@ export class BusListener {
     source.start(this.next);
     this.next += buffer.duration;
   }
+}
+
+/** Why the server didn't send sound: its own words when it gives them ("Spanish translation: off"). */
+async function refusal(res: Response): Promise<string> {
+  if (res.status === 401) return "log in again";
+  const said = await res
+    .json()
+    .then((j: { error?: unknown }) => (typeof j.error === "string" ? j.error : ""))
+    .catch(() => "");
+  return said.replace(/^conflict: /, "") || `the server answered ${res.status}`;
 }
