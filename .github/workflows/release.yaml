@@ -164,6 +164,11 @@ jobs:
           else
             echo "::warning::TAURI_SIGNING_PRIVATE_KEY isn't set: installed Managers can't update to this release by themselves."
           fi
+          # An .rpm can't carry a beta's version (X.Y.Z-A, the "-" isn't allowed there), so
+          # betas ship the .deb and the AppImage on Linux.
+          if [[ "${{ needs.plan.outputs.semver }}" == *-* && "$RUNNER_OS" == "Linux" ]]; then
+            args+=(--bundles deb,appimage)
+          fi
           npm run tauri -- "${args[@]}"
 
       - name: Name the files
