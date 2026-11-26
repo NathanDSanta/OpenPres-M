@@ -54,6 +54,14 @@ export default function Select<T extends string>({
   const [pos, setPos] = useState<{ left: number; top: number; width: number; maxHeight: number } | null>(null);
   const selected = options.find((o) => o.value === value);
   const withSearch = searchable ?? options.length > 10;
+  // The options as they are now, for when the list opens. Pages that redraw often (the bus
+  // settings redraw with every meter update) pass new option arrays each time; only opening
+  // the list may move the highlight back to the chosen row, never a redraw.
+  const latest = useRef({ options, value });
+  latest.current = { options, value };
+  // Scroll the highlighted row into view: when the list opens and for the arrow keys, not
+  // when the mouse highlights a row (the list would move under the pointer).
+  const reveal = useRef(false);
 
   const filtered = useMemo(() => {
     const q = normalizeSearch(query.trim());
@@ -64,8 +72,9 @@ export default function Select<T extends string>({
   useEffect(() => {
     if (!open) return;
     setQuery("");
-    const i = options.findIndex((o) => o.value === value);
-    setActive(Math.max(0, i));
+    const { options, value } = latest.current;
+    reveal.current = true;
+    setActive(Math.max(0, options.findIndex((o) => o.value === value)));
     const onDown = (e: MouseEvent) => {
       const t = e.target as Node;
       if (!panel.current?.contains(t) && !trigger.current?.contains(t)) setOpen(false);
@@ -79,7 +88,7 @@ export default function Select<T extends string>({
       window.removeEventListener("resize", onBlur);
       window.removeEventListener("blur", onBlur);
     };
-  }, [open, options, value]);
+  }, [open]);
 
   useLayoutEffect(() => {
     if (!open || !trigger.current || !panel.current) return;
@@ -95,7 +104,8 @@ export default function Select<T extends string>({
   }, [open, filtered.length]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || !reveal.current) return;
+    reveal.current = false;
     panel.current?.querySelector(".menu-row.active")?.scrollIntoView({ block: "nearest" });
   }, [active, open]);
 
@@ -120,9 +130,11 @@ export default function Select<T extends string>({
       setOpen(false);
     } else if (e.key === "ArrowDown") {
       e.preventDefault();
+      reveal.current = true;
       setActive((a) => Math.min(filtered.length - 1, a + 1));
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
+      reveal.current = true;
       setActive((a) => Math.max(0, a - 1));
     } else if (e.key === "Enter") {
       e.preventDefault();
